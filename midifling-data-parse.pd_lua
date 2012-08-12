@@ -29,7 +29,7 @@ local function parseNoteAgainstAdc(adcval, chan, command, note, velo, target, ki
 		ntab[pos] = nb[pos]
 	end
 	
-	return ntab, note, nb[2]
+	return {ntab, note, nb[2]}
 	
 end
 
@@ -131,8 +131,7 @@ end
 function MidiFling:in_3_list(l)
 
 	local out = {}
-	local offset = 0
-	local preoffset = 0
+	local results = {}
 
 	local chan = l[1] % 16
 	local command = l[1] - chan
@@ -157,119 +156,9 @@ function MidiFling:in_3_list(l)
 		
 			if v.chan == chan then
 			
-				if v.kind == "range" then
-				
-					if v.target == "note" then
-					
-						self.sustains[chan][note] = v.val
-					
-						if #out < 1 then
-							out = {
-								144 + chan,
-								v.val,
-								velo
-							}
-						else
-							out[2] = v.val
-						end
-						
-					elseif v.target == "velocity" then
-					
-						self.sustains[chan][note] = note
-						
-						if #out < 1 then
-							out = {
-								144 + chan,
-								note,
-								v.val
-							}
-						else
-							out[3] = v.val
-						end
-					
-					end
-				
-				elseif (v.kind == "deviate") then
-				
-					if v.target == "note" then
-					
-						offset = note + v.val
-						offset = math.max(0, offset)
-						offset = math.min(127, offset)
-				
-						self.sustains[chan][note] = offset
-					
-						if #out < 1 then
-							out = {
-								144 + chan,
-								offset,
-								velo
-							}
-						else
-							out[2] = offset
-						end
-						
-					elseif v.target == "velocity" then
-					
-						offset = velo + v.val
-						offset = math.max(0, offset)
-						offset = math.min(127, offset)
-				
-						self.sustains[chan][note] = note
-						
-						if #out < 1 then
-							out = {
-								144 + chan,
-								note,
-								offset
-							}
-						else
-							out[3] = offset
-						end
-					
-					end
-				
-				elseif (v.kind == "random") then
-				
-					if v.target == "note" then
-					
-						offset = note + math.random(v.val)
-						offset = math.max(0, offset)
-						offset = math.min(127, offset)
-				
-						self.sustains[chan][note] = offset
-					
-						if #out < 1 then
-							out = {
-								144 + chan,
-								offset,
-								velo
-							}
-						else
-							out[2] = offset
-						end
-						
-					elseif v.target == "velocity" then
-					
-						offset = velo + math.random(v.val)
-						offset = math.max(0, offset)
-						offset = math.min(127, offset)
-				
-						self.sustains[chan][note] = note
-						
-						if #out < 1 then
-							out = {
-								144 + chan,
-								note,
-								offset
-							}
-						else
-							out[3] = offset
-						end
-					
-					end
-				
-				end
+				results = parseNoteAgainstAdc(v.val, chan, command, note, velo, v.target, v.kind, out)
+				out = results[1]
+				self.sustains[chan][results[2]] = results[3]
 			
 			end
 		
