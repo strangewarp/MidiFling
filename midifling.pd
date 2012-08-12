@@ -1,0 +1,34 @@
+#N canvas 336 25 668 517 10;
+#X obj 39 101 unpackOSC;
+#X obj 39 125 pipelist;
+#X obj 39 77 udpreceive 8000;
+#X obj -70 227 print test;
+#X msg 39 53 port \$1;
+#X obj 39 29 r midifling-osc-listen-port;
+#X obj 39 158 routeOSC /midifling;
+#X obj 39 224 routeOSC /port /prefix;
+#X obj 39 246 s midifling-osc-listen-port;
+#X obj 39 192 routeOSC /sys /grid /adc /enc/delta;
+#X obj 382 22 bng 50 250 50 0 empty midifling-adc-1 empty 17 7 0 10
+-262144 -1 -1;
+#X obj 382 72 bng 50 250 50 0 empty midifling-adc-2 empty 17 7 0 10
+-262144 -1 -1;
+#X obj 382 122 bng 50 250 50 0 empty midifling-adc-3 empty 17 7 0 10
+-262144 -1 -1;
+#X obj 382 172 bng 50 250 50 0 empty midifling-adc-4 empty 17 7 0 10
+-262144 -1 -1;
+#X obj 147 364 midifling-data-parse;
+#X obj 1 268 print /sys/port:;
+#X obj 103 268 print /sys/prefix:;
+#X connect 0 0 1 0;
+#X connect 0 0 3 0;
+#X connect 0 1 1 1;
+#X connect 1 0 6 0;
+#X connect 2 0 0 0;
+#X connect 4 0 2 0;
+#X connect 5 0 4 0;
+#X connect 6 0 9 0;
+#X connect 7 0 8 0;
+#X connect 7 0 15 0;
+#X connect 7 1 16 0;
+#X connect 9 0 7 0;
