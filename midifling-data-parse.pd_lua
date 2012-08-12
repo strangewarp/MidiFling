@@ -29,7 +29,7 @@ local function parseNoteAgainstAdc(adcval, chan, command, note, velo, target, ki
 		ntab[pos] = nb[pos]
 	end
 	
-	return {ntab, note, nb[2]}
+	return {ntab, note}
 	
 end
 
@@ -148,8 +148,6 @@ function MidiFling:in_3_list(l)
 	
 		self.sustains[chan][note] = note
 		
-		self:outlet(1, "list", out)
-	
 	elseif command == 144 then
 	
 		for k, v in pairs(self.vtab) do
@@ -158,16 +156,16 @@ function MidiFling:in_3_list(l)
 			
 				results = parseNoteAgainstAdc(v.val, chan, command, note, velo, v.target, v.kind, out)
 				out = results[1]
-				self.sustains[chan][results[2]] = results[3]
+				self.sustains[chan][out[2]] = results[2]
 			
 			end
 		
 		end
 	
-		self:outlet(1, "list", out)
-	
 	end
 	
+	self:outlet(1, "list", out)
+
 end
 
 
