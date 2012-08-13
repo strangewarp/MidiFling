@@ -14,30 +14,37 @@ local function parseNoteAgainstAdc(adcval, bounds, target, kind, midinote, ntab)
 	
 		midinote[pos] = adcval
 		
-	elseif kind == "deviate" then -- The ADC value will deviate from its assigned MIDI value by a user-defined amount
+	elseif kind == "deviate" then -- The ADC value will deviate its assigned MIDI value within user-defined bounds
 	
 		midinote[pos] =
 			math.min(127,
 				math.max(0,
-					midinote[pos] + adcval
+					midinote[pos]
+					+ adcval
+					+ bounds[1]
 				)
 			)
 		
-	elseif kind == "random" then -- The ADC value will deviate by a random amount, within a user-defined range and bias
+	elseif kind == "random" then -- The MIDI value will deviate by a random amount, within an ADC-defined range
+	
+		local range = math.abs(bounds[1]) + math.abs(bounds[2])
+		local modrange = range - adcval
+		rangelow = adcval + bounds[1]
+		rangehigh = bounds[2] - adcval
 	
 		midinote[pos] =
 			math.min(127,
 				math.max(0,
 					math.random(
-						adcval,
-						adcval + bounds[2]
+						midinote[pos] + rangelow,
+						midinote[pos] + rangehigh
 					)
-					+ midinote[pos]
 				)
 			)
 		
 	end
 
+	-- Convert input table into note table, or create it if it's empty
 	if #ntab < 1 then
 		ntab = midinote
 	else
@@ -50,9 +57,10 @@ end
 
 
 
+-- Send naked number color values to the Pd function that will turn them into GUI colors
 function MidiFling:updateGUI()
 
-	for k, v in ipairs(self.vtab) do
+	for k, v in pairs(self.vtab) do
 	
 		local ctab = {}
 		local vb = v.bounds
@@ -72,11 +80,10 @@ end
 
 function MidiFling:initialize(sel, atoms)
 
-	-- 1. Arduinome-style ADC data
-	-- 2. Arc-style delta data
-	-- 3. All MIDI-IN values
-	-- 4. List of MIDI preferences
-	self.inlets = 4
+	-- 1. All incoming ADC data
+	-- 2. All MIDI-IN values
+	-- 3. List of MIDI preferences
+	self.inlets = 3
 	
 	-- All MIDI-THRU values
 	self.outlets = 1
@@ -90,37 +97,8 @@ function MidiFling:initialize(sel, atoms)
 		end
 	end
 	
-	-- Default ADC-value table
-	self.vtab = {
-		{
-			chan = 8,
-			target = "note",
-			kind = "deviate",
-			bounds = {-15, 30},
-			val = 1,
-		},
-		{
-			chan = 8,
-			target = "velocity",
-			kind = "range",
-			bounds = {0, 127},
-			val = 1,
-		},
-		{
-			chan = 9,
-			target = "note",
-			kind = "random",
-			bounds = {-15, 30},
-			val = 1,
-		},
-		{
-			chan = 9,
-			target = "velocity",
-			kind = "range",
-			bounds = {40, 52},
-			val = 1,
-		},
-	}
+	-- ADC-value table; empty until filled by the user-preferences from the Pd program
+	self.vtab = {}
 	
 	return true
 	
@@ -140,25 +118,10 @@ function MidiFling:in_1_list(l)
 	and (key <= #self.vtab)
 	then
 		
+		-- Map ADC value to a range. This value will later modulate MIDI commands
 		local b = vtab.bounds
-		
-		if vtab.kind == "range" then -- Map ADC value to a range. This value will later serve as a full command
-		
-			self.vtab[key].val =
-				math.floor(
-					math.max(b[1], b[2])
-					* f
-				)
-			
-		elseif (vtab.kind == "deviate")
-		or (vtab.kind == "random")
-		then -- Map ADC value to a range, plus offset (usually negative). This value will later modulate a command
-		
-			self.vtab[key].val =
-				math.floor(b[2] * f)
-				+ b[1]
-		
-		end
+		local range = math.abs(b[1]) + math.abs(b[2])
+		self.vtab[key].val = math.floor(range * f)
 		
 	end
 	
@@ -166,14 +129,8 @@ end
 
 
 
-function MidiFling:in_2_list(l)
-	
-end
-
-
-
 -- Parse incoming MIDI values
-function MidiFling:in_3_list(midi)
+function MidiFling:in_2_list(midi)
 
 	local out = {}
 
@@ -216,7 +173,11 @@ end
 
 
 -- Get a list of user-defined ADC/MIDI preferences, and map them to the table of internal ADC values their pointer indicates
-function MidiFling:in_4_list(t)
+function MidiFling:in_3_list(t)
+	
+	if self.vtab[t[1]] == nil then
+		self.vtab[t[1] = {}
+	end
 	
 	self.vtab[t[1]] = {
 		chan = t[2],
