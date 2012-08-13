@@ -28,9 +28,8 @@ local function parseNoteAgainstAdc(adcval, bounds, target, kind, midinote, ntab)
 	elseif kind == "random" then -- The MIDI value will deviate by a random amount, within an ADC-defined range
 	
 		local range = math.abs(bounds[1]) + math.abs(bounds[2])
-		local modrange = range - adcval
-		rangelow = adcval + bounds[1]
-		rangehigh = bounds[2] - adcval
+		local rangelow = adcval + bounds[1]
+		local rangehigh = bounds[2] - adcval
 	
 		midinote[pos] =
 			math.min(127,
