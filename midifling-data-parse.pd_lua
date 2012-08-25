@@ -10,14 +10,12 @@ local function parseNoteAgainstAdc(adcval, bounds, target, kind, midinote, ntab)
 		pos = 3 -- Flag velocity byte instead
 	end
 	
+	pd.post("val " .. adcval)
+	pd.post("pre-note " .. midinote[pos])
+
 	if kind == "range" then -- The ADC value will control a MIDI value outright
 	
-		pd.post(adcval)
-		pd.post(midinote[pos])
-
 		midinote[pos] = adcval
-		
-		pd.post(midinote[pos])
 		
 	elseif kind == "deviate" then -- The ADC value will deviate its assigned MIDI value within user-defined bounds
 	
@@ -32,22 +30,20 @@ local function parseNoteAgainstAdc(adcval, bounds, target, kind, midinote, ntab)
 		
 	elseif kind == "random" then -- The MIDI value will deviate by a random amount, within an ADC-defined range
 	
-		local range = math.abs(bounds[1]) + math.abs(bounds[2])
-		local rangelow = bounds[1] + adcval
-		local rangehigh = bounds[2] - adcval
-	
 		midinote[pos] =
 			math.min(127,
 				math.max(0,
 					math.random(
-						midinote[pos] + rangelow,
-						midinote[pos] + rangehigh
+						midinote[pos] + math.ceil(bounds[1] + ((bounds[2] - adcval) / 2)),
+						midinote[pos] + math.floor(bounds[2] - ((bounds[2] - adcval) / 2))
 					)
 				)
 			)
 		
 	end
 
+	pd.post("post-note " .. midinote[pos])
+		
 	-- Convert input table into note table, or create it if it's empty
 	if #ntab < 1 then
 		ntab = midinote
