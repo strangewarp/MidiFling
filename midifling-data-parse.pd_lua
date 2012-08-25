@@ -12,7 +12,12 @@ local function parseNoteAgainstAdc(adcval, bounds, target, kind, midinote, ntab)
 	
 	if kind == "range" then -- The ADC value will control a MIDI value outright
 	
+		pd.post(adcval)
+		pd.post(midinote[pos])
+
 		midinote[pos] = adcval
+		
+		pd.post(midinote[pos])
 		
 	elseif kind == "deviate" then -- The ADC value will deviate its assigned MIDI value within user-defined bounds
 	
@@ -28,7 +33,7 @@ local function parseNoteAgainstAdc(adcval, bounds, target, kind, midinote, ntab)
 	elseif kind == "random" then -- The MIDI value will deviate by a random amount, within an ADC-defined range
 	
 		local range = math.abs(bounds[1]) + math.abs(bounds[2])
-		local rangelow = adcval + bounds[1]
+		local rangelow = bounds[1] + adcval
 		local rangehigh = bounds[2] - adcval
 	
 		midinote[pos] =
@@ -51,27 +56,6 @@ local function parseNoteAgainstAdc(adcval, bounds, target, kind, midinote, ntab)
 	end
 	
 	return {ntab, midinote[2]}
-	
-end
-
-
-
--- Send naked number color values to the Pd function that will turn them into GUI colors
-function MidiFling:updateGUI()
-
-	for k, v in pairs(self.vtab) do
-	
-		local ctab = {}
-		local vb = v.bounds
-		
-		local rsize = math.abs(vb[1]) + math.abs(vb[2])
-		
-		ctab[] = k - 1
-		ctab[] = (math.abs(v.val) / rsize) * 256
-		
-		pd.send("midifling-gui-parser", "list", ctab)
-	
-	end
 	
 end
 
@@ -119,8 +103,12 @@ function MidiFling:in_1_list(l)
 		
 		-- Map ADC value to a range. This value will later modulate MIDI commands
 		local b = vtab.bounds
-		local range = math.abs(b[1]) + math.abs(b[2])
-		self.vtab[key].val = math.floor(range * f)
+		local range = b[2] - b[1]
+		self.vtab[key].val = math.floor(range * f) + b[1]
+		
+		pd.post("bounds: " .. b[1] .. " " .. b[2])
+		pd.post("range: " .. range)
+		pd.post("val: " .. self.vtab[key].val)
 		
 	end
 	
@@ -175,7 +163,7 @@ end
 function MidiFling:in_3_list(t)
 	
 	if self.vtab[t[1]] == nil then
-		self.vtab[t[1] = {}
+		self.vtab[t[1]] = {}
 	end
 	
 	self.vtab[t[1]] = {
@@ -183,8 +171,8 @@ function MidiFling:in_3_list(t)
 		target = t[3],
 		kind = t[4],
 		bounds = {
-			t[5],
-			t[6],
+			math.min(t[5], t[6]),
+			math.max(t[5], t[6]),
 		},
 		val = 1,
 	}
